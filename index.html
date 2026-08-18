@@ -383,12 +383,19 @@ function submitScoreToSupabase() {
         }
     });
 
+    // ==========================================
+    // 👇 关键修改：在这里加入测试类型标签 👇
+    // ==========================================
+    // 请确认您传入的名字变量是 userName
+    // exam_type 您可以改成对应的：'进阶测试' 或 '资深测试'
     const payload = {
         name: userName || '匿名用户',
+        exam_type: '入门测试',  // 【重要！】这里您要手动改掉，三个页面改成不同的
         score: score,
         total: total,
         wrong_questions: wrongList.join(', ')
     };
+    // ==========================================
 
     submitStatus.style.display = 'block';
     submitStatus.className = 'submit-status';
@@ -401,19 +408,16 @@ function submitScoreToSupabase() {
             'apikey': SUPABASE_ANON_KEY,
             'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload) // 这里把上面定义的 payload 传进去
     })
     .then(response => {
-        if (!response.ok) {
-            throw new Error('HTTP ' + response.status);
-        }
-        // 修复点：改为解析文本，避免 Supabase 返回 204 空内容时报 JSON 解析错误
-        return response.text(); 
+        if (!response.ok) { throw new Error('HTTP ' + response.status); }
+        return response.text();
     })
     .then(data => {
         submitStatus.className = 'submit-status success';
         submitStatus.textContent = '✅ ' + userName + '，你的成绩已成功保存！';
-        console.log('✅ 成绩已保存，服务器响应:', data);
+        console.log('✅ 成绩已保存, 服务器响应:', data);
     })
     .catch(err => {
         submitStatus.className = 'submit-status error';
