@@ -15,7 +15,7 @@
         .header .sub { color:#7b8a9b; font-size:15px; }
         .header .badge { display:inline-block; background:#1a2634; color:#fff; font-size:13px; padding:2px 16px; border-radius:30px; margin-top:8px; }
 
-        /* --- 核心：名字输入界面 (初始只显示这个) --- */
+        /* --- 名字输入界面 (初始只显示这个) --- */
         #namePage { display: block; text-align:center; padding:40px 20px; }
         #namePage h2 { font-size:24px; color:#1a2634; margin-bottom:12px; }
         #namePage p { color:#6a7e94; margin-bottom:28px; font-size:16px; }
@@ -26,8 +26,8 @@
         #namePage .btn-start:disabled { opacity:0.4; cursor:not-allowed; transform:none; }
         .name-error { color:#c73b3b; font-size:14px; margin-top:8px; display:none; }
 
-        /* --- 答题界面 (初始严格隐藏，由JS动态生成) --- */
-        #quizPage { display: none; } /* 核心代码：默认隐藏整个答题区 */
+        /* --- 答题界面 (初始隐藏) --- */
+        #quizPage { display: none; } 
 
         .progress-area { display:flex; justify-content:space-between; align-items:center; background:#f0f3f7; padding:12px 18px; border-radius:50px; margin-bottom:28px; font-size:14px; flex-wrap:wrap; gap:8px; }
         .progress-track { flex:1; min-width:100px; height:6px; background:#dde2e9; border-radius:10px; overflow:hidden; }
@@ -61,7 +61,7 @@
         .btn-outline { background:transparent; border:2px solid #d0d8e2; }
         .btn-outline:disabled { opacity:0.3; cursor:not-allowed; }
         
-        /* --- 结果界面 (严格隐藏) --- */
+        /* --- 结果界面 (初始隐藏) --- */
         .result-box { display:none; text-align:center; padding:30px 10px 10px; }
         .result-box .big-score { font-size:58px; font-weight:800; color:#1a2634; }
         .result-box .big-score small { font-size:24px; color:#7b8a9b; }
@@ -97,7 +97,7 @@
     </div>
 
     <!-- ============================================ -->
-    <!-- 第一部分：只显示名字输入 (HTML 直接写在这里) -->
+    <!-- 第一部分：只显示名字输入 -->
     <!-- ============================================ -->
     <div id="namePage">
         <h2>📝 请先输入你的名字</h2>
@@ -109,7 +109,7 @@
     </div>
 
     <!-- ============================================ -->
-    <!-- 第二部分：答题区（初始 display:none 完全隐藏）-->
+    <!-- 第二部分：答题区（初始完全隐藏）-->
     <!-- ============================================ -->
     <div id="quizPage">
         <div class="progress-area">
@@ -118,7 +118,6 @@
             <span id="scoreLabel" style="font-weight:600;color:#2b7be4;">✅ 0 正确</span>
         </div>
 
-        <!-- 题目挂载点，由JS动态塞入 -->
         <div id="questionsWrapper"></div>
 
         <div class="nav-area">
@@ -128,7 +127,7 @@
     </div>
 
     <!-- ============================================ -->
-    <!-- 第三部分：成绩页（初始 display:none 完全隐藏）-->
+    <!-- 第三部分：成绩页（初始完全隐藏）-->
     <!-- ============================================ -->
     <div class="result-box" id="resultBox">
         <div class="stars" id="resultStars">⭐⭐⭐</div>
@@ -142,7 +141,7 @@
 
 <script>
 // ============================================================
-// 1. 10 道题目数据 (完整保留)
+// 1. 10 道题目数据
 // ============================================================
 const questions = [{
     id:1, title:'在Junket行业做PR，以下哪个选项最准确地描述了你的核心服务对象？',
@@ -253,13 +252,10 @@ userNameInput.addEventListener('keydown', function(e) {
     }
 });
 
-// 开始答题函数（切换页面 + 注入题目）
+// 开始答题函数
 function startQuiz() {
-    // 1. 隐藏名字页，显示答题页
     namePage.style.display = 'none';
     quizPage.style.display = 'block';
-    
-    // 2. 首次渲染题目
     renderAll();
 }
 
@@ -374,7 +370,7 @@ function updateProgressAndScore() {
 }
 
 // ============================================================
-// 5. 提交成绩与结果页
+// 5. 提交成绩与结果页（已修复 JSON 报错）
 // ============================================================
 
 function submitScoreToSupabase() {
@@ -411,12 +407,13 @@ function submitScoreToSupabase() {
         if (!response.ok) {
             throw new Error('HTTP ' + response.status);
         }
-        return response.json();
+        // 修复点：改为解析文本，避免 Supabase 返回 204 空内容时报 JSON 解析错误
+        return response.text(); 
     })
     .then(data => {
         submitStatus.className = 'submit-status success';
         submitStatus.textContent = '✅ ' + userName + '，你的成绩已成功保存！';
-        console.log('✅ 成绩已保存:', data);
+        console.log('✅ 成绩已保存，服务器响应:', data);
     })
     .catch(err => {
         submitStatus.className = 'submit-status error';
@@ -483,17 +480,26 @@ function showResult() {
 }
 
 // ============================================================
-// 6. 重新开始
+// 6. 重新开始【修改为：退回输入名字界面】
 // ============================================================
 function restartQuiz() {
+    // 1. 清空之前的数据
     answers = questions.map(() => ({ selected: null, answered: false }));
     score = 0;
     currentIndex = 0;
     isAllAnswered = false;
+
+    // 2. 隐藏结果界面和答题界面
     resultBox.style.display = 'none';
-    document.getElementById('quizPage').style.display = 'block'; // 恢复显示答题区
+    document.getElementById('quizPage').style.display = 'none';
     submitStatus.style.display = 'none';
-    renderAll();
+
+    // 3. 重新显示输入名字的界面，并清空输入框
+    document.getElementById('namePage').style.display = 'block';
+    document.getElementById('userNameInput').value = '';
+    document.getElementById('startBtn').disabled = true;
+
+    // 4. 滚动到页面最上方
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
