@@ -441,4 +441,20 @@ function restartQuiz() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-document.addEventListener('DOMContentLoaded',
+document.addEventListener('DOMContentLoaded', function() {
+    renderAll();
+    prevBtn.addEventListener('click', goToPrev);
+    nextBtn.addEventListener('click', goToNext);
+    if (restartBtn) {
+        restartBtn.addEventListener('click', restartQuiz);
+    }
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowLeft' && !prevBtn.disabled) prevBtn.click();
+        else if (e.key === 'ArrowRight' && !nextBtn.disabled) nextBtn.click();
+    });
+});
+
+window.restartQuiz = restartQuiz;
+</script>
+</body>
+</html>
