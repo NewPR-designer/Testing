@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Junket PR 新人入门测试</title>
     <style>
+        /* ===== 所有 CSS ===== */
         * { box-sizing:border-box; margin:0; padding:0; }
         body { font-family:"PingFang SC",sans-serif; background:#f4f6fa; padding:20px; display:flex; justify-content:center; }
         .container { max-width:820px; width:100%; background:#fff; border-radius:24px; padding:32px 30px 40px; box-shadow:0 12px 40px rgba(0,0,0,0.08); }
@@ -69,7 +70,8 @@
         .submit-status { margin-top:16px; padding:12px; border-radius:12px; font-size:15px; display:none; }
         .submit-status.success { display:block; background:#dff0d8; color:#1f7a3e; border:1px solid #b8d9b0; }
         .submit-status.error { display:block; background:#f8e1e1; color:#c73b3b; border:1px solid #f0c0c0; }
-        
+
+        /* ===== 姓名输入页 ===== */
         .name-page { display:block; text-align:center; padding:40px 20px; }
         .name-page.hidden { display:none; }
         .name-page h2 { font-size:24px; color:#1a2634; margin-bottom:12px; }
@@ -80,7 +82,7 @@
         .name-page .btn-start:hover { background:#1a6ac8; transform:translateY(-2px); }
         .name-page .btn-start:disabled { opacity:0.4; cursor:not-allowed; transform:none; }
         .name-error { color:#c73b3b; font-size:14px; margin-top:8px; display:none; }
-        
+
         @media (max-width:600px){ .container{ padding:20px 16px; } .q-title{ font-size:18px; } .option-btn{ font-size:15px; padding:12px 16px; } .nav-area .btn{ padding:10px 18px; font-size:14px; } .header h1{ font-size:22px; } .review-item { padding: 16px; } .name-page input { font-size:16px; } }
     </style>
 </head>
@@ -91,7 +93,8 @@
         <div class="sub">10 道不能不知道的事 · 选完即看解析</div>
         <div class="badge">⏳ 约 8 分钟完成</div>
     </div>
-    
+
+    <!-- ===== 姓名输入页 ===== -->
     <div class="name-page" id="namePage">
         <h2>📝 请先输入你的名字</h2>
         <p>方便我们记录你的学习进度和成绩</p>
@@ -100,13 +103,14 @@
         <br />
         <button class="btn-start" id="startBtn" disabled>开始答题 →</button>
     </div>
-    
+
+    <!-- ===== 进度条 ===== -->
     <div class="progress-area" id="progressArea" style="display:none;">
         <span class="progress-text" id="progressLabel">第 1 / 10 题</span>
         <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%;"></div></div>
         <span id="scoreLabel" style="font-weight:600;color:#2b7be4;">✅ 0 正确</span>
     </div>
-    
+
     <div id="questionsWrapper"></div>
     <div class="nav-area" id="navArea" style="display:none;">
         <button class="btn btn-outline" id="prevBtn" disabled>← 上一题</button>
@@ -122,6 +126,7 @@
     </div>
 </div>
 <script>
+// ====== 所有 JavaScript ======
 const questions = [{
     id:1, title:'在Junket行业做PR，以下哪个选项最准确地描述了你的核心服务对象？',
     options:['所有来旅游观光的普通游客','能带来高额流水和持续贡献的VIP高端客户','赌场内所有需要帮助的荷官和工作人员','酒店内其他非博彩部门的同事'],
@@ -164,12 +169,14 @@ const questions = [{
     correct:1, insight:'公司SPO PR需要三分钟里面回复客人的信息，就算真的在忙无法立即完成客人委托或者需求，可以礼貌性回复稍等一会我们去查看，至少让客人知道有人在关注着而不是感到没人理会'
 }];
 
+// ====== 状态 ======
 let currentIndex = 0;
 let answers = questions.map(() => ({ selected: null, answered: false }));
 let score = 0;
 let isAllAnswered = false;
 let userName = '';
 
+// ====== DOM ======
 const namePage = document.getElementById('namePage');
 const userNameInput = document.getElementById('userNameInput');
 const nameError = document.getElementById('nameError');
@@ -187,39 +194,62 @@ const resultReview = document.getElementById('resultReview');
 const restartBtn = document.getElementById('restartBtn');
 const submitStatus = document.getElementById('submitStatus');
 
+// ====== Supabase ======
 const SUPABASE_URL = 'https://xjzjuhtkusvrnbijfgns.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhqemp1aHRrdXN2cm5iaWpmZ25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcwNzE3MjEsImV4cCI6MjEwMjY0NzcyMX0.6TuUvFOtvFqF5TMiU_Yc-r2x_7GG8fOwzDApvoXCIPQ';
 
+// ============================================================
+//  🔒 强制必须输入姓名（修复核心逻辑）
+// ============================================================
+
+// 1. 输入框变化时控制按钮状态
 userNameInput.addEventListener('input', function() {
     const val = this.value.trim();
+    // 只有输入内容时，才启用按钮
+    startBtn.disabled = (val.length === 0);
     if (val.length > 0) {
-        startBtn.disabled = false;
         nameError.style.display = 'none';
-    } else {
-        startBtn.disabled = true;
     }
 });
 
+// 2. 点击"开始答题"按钮时的检查
 startBtn.addEventListener('click', function() {
     const val = userNameInput.value.trim();
     if (val.length === 0) {
         nameError.style.display = 'block';
+        startBtn.disabled = true; // 确保按钮被禁用
         return;
     }
+    // 只有通过验证，才能进入答题
     userName = val;
+    startQuiz();
+});
+
+// 3. 按回车键时，也执行同样的检查
+userNameInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+        const val = this.value.trim();
+        if (val.length === 0) {
+            nameError.style.display = 'block';
+            startBtn.disabled = true;
+            return;
+        }
+        // 通过验证，执行开始答题
+        userName = val;
+        startQuiz();
+    }
+});
+
+// 4. 独立的开始答题函数
+function startQuiz() {
     namePage.classList.add('hidden');
     namePage.style.display = 'none';
     progressArea.style.display = 'flex';
     navArea.style.display = 'flex';
     renderAll();
-});
+}
 
-userNameInput.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' && !startBtn.disabled) {
-        startBtn.click();
-    }
-});
-
+// ====== 渲染题目 ======
 function renderAll() {
     let html = '';
     for (let i = 0; i < questions.length; i++) {
@@ -325,6 +355,7 @@ function updateProgressAndScore() {
     scoreLabel.textContent = '✅ ' + score + ' 正确';
 }
 
+// ====== 提交成绩 ======
 function submitScoreToSupabase() {
     const total = questions.length;
     let wrongList = [];
@@ -373,6 +404,7 @@ function submitScoreToSupabase() {
     });
 }
 
+// ====== 显示结果 ======
 function showResult() {
     document.querySelectorAll('.question-card').forEach(el => el.classList.remove('active'));
     navArea.style.display = 'none';
@@ -421,40 +453,4 @@ function showResult() {
         } else {
             reviewHtml += '<div class="review-answer-line"><span class="label">📌 状态：</span><span style="color:#c73b3b;font-weight:700;">⏳ 未作答</span>&nbsp;&nbsp;|&nbsp;&nbsp;<span class="label">✅ 正确答案：</span><span class="correct-ans">' + labels[q.correct] + '. ' + q.options[q.correct] + '</span></div>';
         }
-        reviewHtml += '<div style="margin-top:10px; padding-top:10px; border-top:1px dashed #e0e5ec; font-size:14px; color:#4a5a6a;"><strong>💡 解析：</strong>' + q.insight + '</div></div>';
-    });
-    resultReview.innerHTML = reviewHtml;
-
-    submitScoreToSupabase();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-function restartQuiz() {
-    answers = questions.map(() => ({ selected: null, answered: false }));
-    score = 0;
-    currentIndex = 0;
-    isAllAnswered = false;
-    resultBox.style.display = 'none';
-    navArea.style.display = 'flex';
-    submitStatus.style.display = 'none';
-    renderAll();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    renderAll();
-    prevBtn.addEventListener('click', goToPrev);
-    nextBtn.addEventListener('click', goToNext);
-    if (restartBtn) {
-        restartBtn.addEventListener('click', restartQuiz);
-    }
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'ArrowLeft' && !prevBtn.disabled) prevBtn.click();
-        else if (e.key === 'ArrowRight' && !nextBtn.disabled) nextBtn.click();
-    });
-});
-
-window.restartQuiz = restartQuiz;
-</script>
-</body>
-</html>
+        reviewHtml += '<div style="margin-top:10px; padding-top:10px; border-top:1px dashed #e0e5ec; font-size:14px
